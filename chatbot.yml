@@ -4,7 +4,7 @@ Description: slack notification by aws chatbot
 Parameters:
   SlackWorkspaceId:
     Type: String
-    Description: Slack workspace Id.
+    Description: Slack workspace Id from AWS console.
   SlackChannelId:
     Description: Slack channel Id.
     Type: String
