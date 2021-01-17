@@ -8,6 +8,9 @@ Parameters:
   SlackChannelId:
     Description: Slack channel Id.
     Type: String
+  MonthlyCostBudget:
+    Description: Monthly cost budget
+    Type: Number
 
 Resources:
   chatbot:
@@ -17,8 +20,9 @@ Resources:
       IamRoleArn: !GetAtt chatbotIamRole.Arn
       SlackChannelId: !Ref SlackChannelId
       SlackWorkspaceId: !Ref SlackWorkspaceId
-      # SnsTopicArns: 
-      #   - !Ref snsTopic
+      LoggingLevel: INFO
+      SnsTopicArns: 
+        - !Ref CloudWatchAlarmForChatbotTopic
   chatbotIamRole:
     Type: AWS::IAM::Role
     Properties: 
@@ -34,52 +38,40 @@ Resources:
               - "sts:AssumeRole"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess
-  # snsTopic:
-  #   Type: AWS::SNS::Topic
-  #   Properties: 
-  #     TopicName: aws-budget-notification
-  # snsTopicPolicy:
-  #   Type: AWS::SNS::TopicPolicy
-  #   Properties: 
-  #     PolicyDocument: |
-  #       {
-  #         "Version": "2008-10-17",
-  #         "Id": "__default_policy_ID",
-  #         "Statement": [
-  #           {
-  #             "Sid": "AWSBudgetsSNSPublishingPermissions",
-  #             "Effect": "Allow",
-  #             "Principal": {
-  #               "Service": "budgets.amazonaws.com"
-  #             },
-  #             "Action": "SNS:Publish",
-  #             "Resource": "arn:aws:sns:ap-northeast-1:370929926236:development-infra_cost_notification"
-  #           },
-  #           {
-  #             "Sid": "__default_statement_ID",
-  #             "Effect": "Allow",
-  #             "Principal": {
-  #               "AWS": "*"
-  #             },
-  #             "Action": [
-  #               "SNS:GetTopicAttributes",
-  #               "SNS:SetTopicAttributes",
-  #               "SNS:AddPermission",
-  #               "SNS:RemovePermission",
-  #               "SNS:DeleteTopic",
-  #               "SNS:Subscribe",
-  #               "SNS:ListSubscriptionsByTopic",
-  #               "SNS:Publish",
-  #               "SNS:Receive"
-  #             ],
-  #             "Resource": "arn:aws:sns:ap-northeast-1:370929926236:development-infra_cost_notification",
-  #             "Condition": {
-  #               "StringEquals": {
-  #                 "AWS:SourceOwner": "370929926236"
-  #               }
-  #             }
-  #           }
-  #         ]
-  #       }
-  #     Topics: 
-  #       - !Ref snsTopic
+  CloudWatchAlarmForChatbotTopic:
+    Type: AWS::SNS::Topic
+    Properties: 
+      TopicName: aws-budget-notification
+  snsTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties: 
+      PolicyDocument: 
+        Version: "2008-10-17"
+        Statement:
+        - Sid: AWSBudgetsSNSPublishingPermissions
+          Effect: Allow
+          Principal:
+            Service: budgets.amazonaws.com
+          Action: "SNS:Publish"
+          Resource: !Ref CloudWatchAlarmForChatbotTopic
+      Topics: 
+      - !Ref CloudWatchAlarmForChatbotTopic
+    DependsOn: CloudWatchAlarmForChatbotTopic
+  myBudget:
+    Type: AWS::Budgets::Budget
+    Properties: 
+      Budget:
+        BudgetLimit:
+          Amount: !Ref MonthlyCostBudget
+          Unit: USD
+        BudgetType: COST
+        TimeUnit: MONTHLY
+      NotificationsWithSubscribers: 
+        - Notification: 
+            ComparisonOperator: GREATER_THAN
+            NotificationType: ACTUAL
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers: 
+          - Address: !Ref CloudWatchAlarmForChatbotTopic
+            SubscriptionType: SNS
