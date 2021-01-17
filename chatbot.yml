@@ -11,6 +11,10 @@ Parameters:
   MonthlyCostBudget:
     Description: Monthly cost budget
     Type: Number
+  AlertThresholdPercentage:
+    Description: The percentage of Alert threshold.
+    Type: Number
+    Default: 80
 
 Resources:
   chatbot:
@@ -70,7 +74,7 @@ Resources:
         - Notification: 
             ComparisonOperator: GREATER_THAN
             NotificationType: ACTUAL
-            Threshold: 80
+            Threshold: !Ref AlertThresholdPercentage
             ThresholdType: PERCENTAGE
           Subscribers: 
           - Address: !Ref CloudWatchAlarmForChatbotTopic
