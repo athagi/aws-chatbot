@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: slack notification by aws chatbot
+
+Parameters:
+  SlackWorkspaceId:
+    Type: String
+    Description: Slack workspace Id from AWS console.
+  SlackChannelId:
+    Description: Slack channel Id.
+    Type: String
+
+Resources:
+  chatbot:
+    Type: AWS::Chatbot::SlackChannelConfiguration
+    Properties: 
+      ConfigurationName: aws-cli
+      IamRoleArn: !GetAtt chatbotIamRole.Arn
+      SlackChannelId: !Ref SlackChannelId
+      SlackWorkspaceId: !Ref SlackWorkspaceId
+      LoggingLevel: INFO
+  chatbotIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "chatbot.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Policies:
+      - PolicyName: describeEcrPolicy
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - 
+              Effect: "Allow"
+              Action: 
+                - "ecr:BatchCheck*"
+                - "ecr:BatchGet*"
+                - "ecr:Describe*"
+                - "ecr:Get*"
+                - "ecr:List*"
+              Resource: "*"
+      - PolicyName: denyAccessPolicy
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - 
+              Effect: "Deny"
+              Action: 
+                - "iam:*"
+                - "s3:GetBucketPolicy"
+                - "ssm:*"
+                - "sts:*"
+                - "kms:*"
+                - "cognito-idp:GetSigningCertificate"
+                - "ec2:GetPasswordData"
+                - "ecr:GetAuthorizationToken"
+                - "gamelift:RequestUploadCredentials"
+                - "gamelift:GetInstanceAccess"
+                - "lightsail:DownloadDefaultKeyPair"
+                - "lightsail:GetInstanceAccessDetails"
+                - "lightsail:GetKeyPair"
+                - "lightsail:GetKeyPairs"
+                - "redshift:GetClusterCredentials"
+                - "storagegateway:DescribeChapCredentials"
+              Resource: "*"
